@@ -45,6 +45,13 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+jwt:
+  # Dev default. Override via JWT_SECRET env var. Must be base64-encoded
+  # 32+ bytes (256+ bits) for HS256.
+  secret: ${JWT_SECRET:8hg89GAZRYrmUPqkiEMWGWj4WvsFnVj9AhWJTGdlEtI=}
+  ttl: PT24H
+  issuer: steel-store
+
 logging:
   level:
     org.springframework.security: INFO
