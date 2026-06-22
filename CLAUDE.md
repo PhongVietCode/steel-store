@@ -10,7 +10,7 @@ condensed reference. The full multi-stage plan lives at
 
 | Area | Decision |
 |---|---|
-| Backend | Spring Boot 3.x, Java 21 |
+| Backend | Spring Boot 4.1.x, Java 21 (revised from 3.x — 4.x is current GA) |
 | Frontend | React 19 + Vite + TypeScript, Tailwind, shadcn/ui |
 | DB | PostgreSQL 16 (Docker for dev) |
 | Repo | Monorepo: `/backend`, `/frontend` |
