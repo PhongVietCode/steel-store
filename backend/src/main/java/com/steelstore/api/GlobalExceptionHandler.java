@@ -1,6 +1,10 @@
 package com.steelstore.api;
 
 import com.steelstore.product.ProductNotFoundException;
+import com.steelstore.transaction.InsufficientStockException;
+import com.steelstore.transaction.IrreversibleTransactionException;
+import com.steelstore.transaction.TransactionService.ConflictRetryExhaustedException;
+import com.steelstore.transaction.TransactionService.TransactionNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +26,37 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         body.setTitle("Product not found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(TransactionNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleTransactionNotFound(TransactionNotFoundException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        body.setTitle("Transaction not found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ProblemDetail> handleInsufficientStock(InsufficientStockException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        body.setTitle("Insufficient stock");
+        body.setProperty("productId", ex.getProductId());
+        body.setProperty("currentStock", ex.getCurrentStock());
+        body.setProperty("requested", ex.getRequested());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(IrreversibleTransactionException.class)
+    public ResponseEntity<ProblemDetail> handleIrreversible(IrreversibleTransactionException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        body.setTitle("Transaction is not reversible");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(ConflictRetryExhaustedException.class)
+    public ResponseEntity<ProblemDetail> handleRetryExhausted(ConflictRetryExhaustedException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        body.setTitle("Concurrent update conflict");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @Override
