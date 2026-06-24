@@ -4,6 +4,7 @@ import com.steelstore.product.dto.CreateProductRequest;
 import com.steelstore.product.dto.ProductResponse;
 import com.steelstore.product.dto.UpdateProductRequest;
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,7 +53,12 @@ public class ProductService {
 
     public void delete(Long id) {
         Product p = load(id);
-        repository.delete(p);
+        try {
+            repository.delete(p);
+            repository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ProductInUseException(id);
+        }
     }
 
     private Product load(Long id) {

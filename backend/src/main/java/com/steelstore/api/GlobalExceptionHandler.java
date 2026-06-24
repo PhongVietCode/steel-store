@@ -1,5 +1,6 @@
 package com.steelstore.api;
 
+import com.steelstore.product.ProductInUseException;
 import com.steelstore.product.ProductNotFoundException;
 import com.steelstore.transaction.InsufficientStockException;
 import com.steelstore.transaction.IrreversibleTransactionException;
@@ -30,6 +31,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         body.setTitle("Product not found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ProductInUseException.class)
+    public ResponseEntity<ProblemDetail> handleProductInUse(ProductInUseException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        body.setTitle("Product in use");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(TransactionNotFoundException.class)

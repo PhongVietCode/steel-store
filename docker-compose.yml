@@ -4,18 +4,55 @@ services:
     container_name: steelstore-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: steelstore
-      POSTGRES_PASSWORD: steelstore
-      POSTGRES_DB: steelstore
+      POSTGRES_USER:     ${POSTGRES_USER:-steelstore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-steelstore}
+      POSTGRES_DB:       ${POSTGRES_DB:-steelstore}
     ports:
       - "5432:5432"
     volumes:
       - steelstore-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U steelstore -d steelstore"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-steelstore} -d ${POSTGRES_DB:-steelstore}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: steelstore-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/${POSTGRES_DB:-steelstore}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-steelstore}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-steelstore}
+      JWT_SECRET:                 ${JWT_SECRET:-8hg89GAZRYrmUPqkiEMWGWj4WvsFnVj9AhWJTGdlEtI=}
+      # Optional: rotates the seeded admin password on each boot.
+      ADMIN_USERNAME:             ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD:             ${ADMIN_PASSWORD:-}
+      APP_CORS_ALLOWED_ORIGINS:   ${APP_CORS_ALLOWED_ORIGINS:-http://localhost}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: steelstore-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
 
 volumes:
   steelstore-pgdata:
