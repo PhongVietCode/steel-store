@@ -1,0 +1,75 @@
+### Steel Store — manual smoke requests
+### Usage (JetBrains HTTP client):
+###   1. Run the "Login" request — `{{token}}` is captured from the response.
+###   2. Run any subsequent request — it auto-attaches the Bearer header.
+### Or use IntelliJ / VSCode REST Client extensions.
+
+@host = http://localhost:8080
+
+### Login (captures token)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin"
+}
+
+> {%
+client.global.set("token", response.body.token);
+%}
+
+### Who am I?
+GET {{host}}/api/me
+Authorization: Bearer {{token}}
+
+###
+
+### List products
+GET {{host}}/api/products
+Authorization: Bearer {{token}}
+
+### Search products by name
+GET {{host}}/api/products?name=thép
+Authorization: Bearer {{token}}
+
+###
+
+### Create product
+# @name createProduct
+POST {{host}}/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Thép phi 6",
+  "unit": "kg",
+  "currentImportPrice": 18000,
+  "currentSellingPrice": 21000,
+  "currentStock": 100
+}
+
+> {%
+client.global.set("productId", response.body.id);
+%}
+
+### Get product by id
+GET {{host}}/api/products/{{productId}}
+Authorization: Bearer {{token}}
+
+### Update product
+PUT {{host}}/api/products/{{productId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Thép phi 6 (cập nhật)",
+  "unit": "kg",
+  "currentImportPrice": 19000,
+  "currentSellingPrice": 22000
+}
+
+### Delete product
+DELETE {{host}}/api/products/{{productId}}
+Authorization: Bearer {{token}}

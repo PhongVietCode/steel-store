@@ -59,4 +59,17 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	// Testcontainers + Colima on macOS:
+	// - DOCKER_HOST: the colima socket on the macOS host
+	// - TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: the socket path INSIDE the
+	//   colima VM (ryuk mounts the docker socket from there, not from the
+	//   macOS-side path which doesn't exist in the VM)
+	// - TESTCONTAINERS_HOST_OVERRIDE: Colima only port-forwards to IPv4
+	def colimaSock = new File(System.getProperty('user.home'), '.colima/default/docker.sock')
+	if (System.getenv('DOCKER_HOST') == null && colimaSock.exists()) {
+		environment 'DOCKER_HOST', "unix://${colimaSock.absolutePath}"
+		environment 'TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE', '/var/run/docker.sock'
+		environment 'TESTCONTAINERS_HOST_OVERRIDE', '127.0.0.1'
+	}
 }

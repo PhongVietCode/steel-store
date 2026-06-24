@@ -1,5 +1,6 @@
 package com.steelstore.api;
 
+import com.steelstore.product.ProductNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +16,13 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleProductNotFound(ProductNotFoundException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        body.setTitle("Product not found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
