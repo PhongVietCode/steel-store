@@ -104,6 +104,14 @@ class ProfitReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(steelRow.revenue()).isEqualTo(525_000L);
         assertThat(steelRow.cost()).isEqualTo(450_000L);
         assertThat(steelRow.profit()).isEqualTo(75_000L);
+
+        // All seed rows land on the same Asia/Ho_Chi_Minh day, so daily[]
+        // should have exactly one row equal to the totals.
+        assertThat(body.daily()).hasSize(1);
+        var todayRow = body.daily().get(0);
+        assertThat(todayRow.revenue()).isEqualTo(body.revenue());
+        assertThat(todayRow.cost()).isEqualTo(body.cost());
+        assertThat(todayRow.profit()).isEqualTo(body.profit());
     }
 
     @Test

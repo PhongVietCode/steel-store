@@ -9,5 +9,6 @@ public record ProfitReportResponse(
         long revenue,
         long cost,
         long profit,
-        List<ProductProfitRow> byProduct
+        List<ProductProfitRow> byProduct,
+        List<DailyProfitRow> daily
 ) {}

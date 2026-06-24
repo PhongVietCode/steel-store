@@ -1,5 +1,6 @@
 package com.steelstore.report;
 
+import com.steelstore.report.dto.DailyProfitRow;
 import com.steelstore.report.dto.ProductProfitRow;
 import com.steelstore.report.dto.ProfitReportResponse;
 import java.time.LocalDate;
@@ -40,10 +41,18 @@ public class ProfitReportService {
                 })
                 .toList();
 
+        List<DailyProfitRow> daily = repository.aggregateDaily(start, endExclusive).stream()
+                .map(d -> {
+                    long revenue = nz(d.getRevenue());
+                    long cost = nz(d.getCost());
+                    return new DailyProfitRow(d.getDay(), revenue, cost, revenue - cost);
+                })
+                .toList();
+
         long totalRevenue = rows.stream().mapToLong(ProductProfitRow::revenue).sum();
         long totalCost    = rows.stream().mapToLong(ProductProfitRow::cost).sum();
         return new ProfitReportResponse(from, to, totalRevenue, totalCost,
-                totalRevenue - totalCost, rows);
+                totalRevenue - totalCost, rows, daily);
     }
 
     private static long nz(Long v) { return v == null ? 0L : v; }

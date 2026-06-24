@@ -28,4 +28,24 @@ public interface ProfitReportRepository extends Repository<com.steelstore.transa
     List<ProductProfitProjection> aggregateSales(
             @Param("from") OffsetDateTime from,
             @Param("to")   OffsetDateTime to);
+
+    /**
+     * Daily revenue / cost over SALE rows, grouped by the local date in
+     * Asia/Ho_Chi_Minh. Native because date-trunc-with-timezone isn't
+     * portable across JPA dialects.
+     */
+    @Query(value = """
+        SELECT (occurred_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS day,
+               SUM(unit_price        * quantity)                    AS revenue,
+               SUM(cost_basis_per_unit * quantity)                  AS cost
+        FROM transactions
+        WHERE type = 'SALE'
+          AND occurred_at >= :from
+          AND occurred_at <  :to
+        GROUP BY day
+        ORDER BY day ASC
+        """, nativeQuery = true)
+    List<DailyProfitProjection> aggregateDaily(
+            @Param("from") OffsetDateTime from,
+            @Param("to")   OffsetDateTime to);
 }
