@@ -6,7 +6,10 @@ import com.steelstore.product.ProductRepository;
 import com.steelstore.transaction.dto.RecordImportRequest;
 import com.steelstore.transaction.dto.RecordSaleRequest;
 import com.steelstore.transaction.dto.TransactionResponse;
+import jakarta.persistence.criteria.Predicate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -15,7 +18,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -110,10 +115,19 @@ public class TransactionService {
         })));
     }
 
+    @Transactional(readOnly = true)
     public Page<TransactionResponse> search(Long productId, TransactionType type,
                                             OffsetDateTime from, OffsetDateTime to,
                                             Pageable pageable) {
-        return transactionRepository.search(productId, type, from, to, pageable)
+        Specification<Transaction> spec = (root, query, cb) -> {
+            List<Predicate> preds = new ArrayList<>();
+            if (productId != null) preds.add(cb.equal(root.get("product").get("id"), productId));
+            if (type != null)      preds.add(cb.equal(root.get("type"), type));
+            if (from != null)      preds.add(cb.greaterThanOrEqualTo(root.get("occurredAt"), from));
+            if (to != null)        preds.add(cb.lessThan(root.get("occurredAt"), to));
+            return cb.and(preds.toArray(new Predicate[0]));
+        };
+        return transactionRepository.findAll(spec, pageable)
                 .map(TransactionResponse::from);
     }
 

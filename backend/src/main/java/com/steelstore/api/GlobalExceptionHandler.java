@@ -7,6 +7,8 @@ import com.steelstore.transaction.TransactionService.ConflictRetryExhaustedExcep
 import com.steelstore.transaction.TransactionService.TransactionNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -20,6 +22,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ProductNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleProductNotFound(ProductNotFoundException ex) {
@@ -87,6 +91,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, WebRequest request) {
+        log.error("Unhandled exception serving {}", request.getDescription(false), ex);
         ProblemDetail body = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred.");

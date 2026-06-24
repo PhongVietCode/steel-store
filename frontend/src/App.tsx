@@ -5,9 +5,11 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/lib/auth-context';
 import { DashboardPage } from '@/pages/Dashboard';
+import { ImportsPage } from '@/pages/Imports';
 import { LoginPage } from '@/pages/Login';
-import { PlaceholderPage } from '@/pages/Placeholder';
 import { ProductsPage } from '@/pages/Products';
+import { SalesPage } from '@/pages/Sales';
+import { TransactionsPage } from '@/pages/Transactions';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,12 +35,9 @@ export default function App() {
             >
               <Route index element={<DashboardPage />} />
               <Route path="/products" element={<ProductsPage />} />
-              <Route path="/imports" element={<PlaceholderPage title="Nhập hàng" stage={8} />} />
-              <Route path="/sales" element={<PlaceholderPage title="Bán hàng" stage={8} />} />
-              <Route
-                path="/transactions"
-                element={<PlaceholderPage title="Lịch sử giao dịch" stage={8} />}
-              />
+              <Route path="/imports" element={<ImportsPage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/transactions" element={<TransactionsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
