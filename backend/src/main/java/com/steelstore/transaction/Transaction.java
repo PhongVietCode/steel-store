@@ -30,7 +30,7 @@ public class Transaction {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type", nullable = false, columnDefinition = "transaction_type")
+    @Column(name = "type", nullable = false, columnDefinition = "transactiontype")
     private TransactionType type;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
