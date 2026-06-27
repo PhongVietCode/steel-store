@@ -29,7 +29,11 @@ interface ApiOptions {
   idempotencyKey?: string;
 }
 
-const BASE_URL = '/api'; // Vite dev proxy forwards to localhost:8080
+// In dev, the Vite proxy forwards /api to localhost:8080. In prod, set
+// VITE_API_BASE_URL to the backend's absolute origin+path (e.g.
+// https://steel-store-api.onrender.com/api) so the SPA can call the
+// backend directly without any host-side proxy/_redirects rewrite.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 /**
  * Single entry point for backend calls.
@@ -60,7 +64,10 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     headers['Idempotency-Key'] = idempotencyKey ?? uuidv4();
   }
 
-  const res = await fetch(url.pathname + url.search, {
+  const sameOrigin = url.origin === window.location.origin;
+  const requestUrl = sameOrigin ? url.pathname + url.search : url.toString();
+
+  const res = await fetch(requestUrl, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
