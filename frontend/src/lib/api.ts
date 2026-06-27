@@ -25,7 +25,7 @@ interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
-  /** Override the auto-injected idempotency key (POST /api/transactions/*). */
+  /** Override the auto-injected idempotency key (POST /api/bills/*). */
   idempotencyKey?: string;
 }
 
@@ -34,7 +34,7 @@ const BASE_URL = '/api'; // Vite dev proxy forwards to localhost:8080
 /**
  * Single entry point for backend calls.
  *  - Adds JWT from localStorage (if present).
- *  - Auto-generates an Idempotency-Key (UUID v4) for POST /api/transactions/*.
+ *  - Auto-generates an Idempotency-Key (UUID v4) for POST /api/bills/*.
  *  - On 401 -> clears token + redirects to /login.
  *  - On non-2xx -> throws ApiError with the parsed ProblemDetail body.
  */
@@ -56,7 +56,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   const token = loadToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  if (method === 'POST' && path.startsWith('/transactions')) {
+  if (method === 'POST' && path.startsWith('/bills')) {
     headers['Idempotency-Key'] = idempotencyKey ?? uuidv4();
   }
 

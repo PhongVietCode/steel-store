@@ -2,10 +2,11 @@ package com.steelstore.api;
 
 import com.steelstore.product.ProductInUseException;
 import com.steelstore.product.ProductNotFoundException;
+import com.steelstore.transaction.BillService.BillNotFoundException;
+import com.steelstore.transaction.BillService.ConflictRetryExhaustedException;
+import com.steelstore.transaction.DuplicateProductInBillException;
 import com.steelstore.transaction.InsufficientStockException;
-import com.steelstore.transaction.IrreversibleTransactionException;
-import com.steelstore.transaction.TransactionService.ConflictRetryExhaustedException;
-import com.steelstore.transaction.TransactionService.TransactionNotFoundException;
+import com.steelstore.transaction.IrreversibleBillException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -40,10 +41,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
-    @ExceptionHandler(TransactionNotFoundException.class)
-    public ResponseEntity<ProblemDetail> handleTransactionNotFound(TransactionNotFoundException ex) {
+    @ExceptionHandler(BillNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleBillNotFound(BillNotFoundException ex) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-        body.setTitle("Transaction not found");
+        body.setTitle("Bill not found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
@@ -57,6 +58,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
+    @ExceptionHandler(DuplicateProductInBillException.class)
+    public ResponseEntity<ProblemDetail> handleDuplicateProductInBill(DuplicateProductInBillException ex) {
+        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        body.setTitle("Duplicate product on bill");
+        body.setProperty("productId", ex.getProductId());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -64,10 +73,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    @ExceptionHandler(IrreversibleTransactionException.class)
-    public ResponseEntity<ProblemDetail> handleIrreversible(IrreversibleTransactionException ex) {
+    @ExceptionHandler(IrreversibleBillException.class)
+    public ResponseEntity<ProblemDetail> handleIrreversibleBill(IrreversibleBillException ex) {
         ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        body.setTitle("Transaction is not reversible");
+        body.setTitle("Bill is not reversible");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 

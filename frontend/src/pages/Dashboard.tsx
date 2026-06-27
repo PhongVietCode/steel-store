@@ -8,9 +8,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { KpiGrid } from '@/components/dashboard/KpiGrid';
+import { RecentActivityPanel } from '@/components/dashboard/RecentActivityPanel';
+import { StockPanel } from '@/components/dashboard/StockPanel';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import {
   Table,
   TableBody,
@@ -19,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useBills } from '@/lib/bills-api';
 import { formatNumber, formatVnd } from '@/lib/format';
 import { useProfitReport, type ProfitReport } from '@/lib/reports-api';
 import { cn } from '@/lib/utils';
@@ -28,155 +31,78 @@ const REPORT_TZ = 'Asia/Ho_Chi_Minh';
 type Preset = '7d' | '30d' | 'mtd' | 'ytd';
 
 export function DashboardPage() {
-  const [{ from, to }, setRange] = useState(() => defaultRange());
+  const [{ from, to, preset }, setRange] = useState(() => ({
+    ...rangeForPreset('30d'),
+    preset: '30d' as Preset,
+  }));
 
   const report = useProfitReport(from, to);
+  const billsInRange = useBills({
+    from,
+    to,
+    type: 'SALE',
+    page: 0,
+    size: 1,
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Bảng điều khiển</h1>
-          <p className="text-sm text-neutral-500">
-            Doanh thu, giá vốn và lợi nhuận theo khoảng ngày (giờ Việt Nam).
-          </p>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted">
+            Khoảng: {from} → {to}
+          </div>
+          <h1 className="mt-1 text-[24px] font-semibold tracking-tight text-ink">
+            Doanh số & tồn kho
+          </h1>
         </div>
-        <DateRangeBar
-          from={from}
-          to={to}
-          onChange={(next) => setRange(next)}
-        />
-      </div>
-
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <KpiCard
-          label="Doanh thu"
-          value={report.data?.revenue ?? 0}
-          loading={report.isPending}
-          tone="neutral"
-        />
-        <KpiCard
-          label="Giá vốn"
-          value={report.data?.cost ?? 0}
-          loading={report.isPending}
-          tone="neutral"
-        />
-        <KpiCard
-          label="Lợi nhuận"
-          value={report.data?.profit ?? 0}
-          loading={report.isPending}
-          tone={(report.data?.profit ?? 0) >= 0 ? 'positive' : 'negative'}
-        />
-      </section>
-
-      <section className="rounded-xl border border-neutral-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-700">Lợi nhuận theo ngày</h2>
-          {report.data ? (
-            <span className="text-xs text-neutral-500">
-              {report.data.daily.length === 0
-                ? 'Chưa có dữ liệu'
-                : `${report.data.daily.length} ngày có giao dịch`}
-            </span>
-          ) : null}
+        <div className="flex flex-wrap gap-1.5">
+          {(['7d', '30d', 'mtd', 'ytd'] as const).map((p) => (
+            <Button
+              key={p}
+              variant={preset === p ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setRange({ ...rangeForPreset(p), preset: p })}
+            >
+              {presetLabel(p)}
+            </Button>
+          ))}
         </div>
-        <DailyProfitChart report={report.data} loading={report.isPending} />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-neutral-700">Lợi nhuận theo sản phẩm</h2>
-        <ByProductTable report={report.data} loading={report.isPending} />
-      </section>
-    </div>
-  );
-}
-
-interface DateRange {
-  from: string;
-  to: string;
-}
-
-function DateRangeBar({
-  from,
-  to,
-  onChange,
-}: {
-  from: string;
-  to: string;
-  onChange: (r: DateRange) => void;
-}) {
-  function applyPreset(p: Preset) {
-    onChange(rangeForPreset(p));
-  }
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-      <div className="space-y-1">
-        <Label className="text-xs uppercase tracking-wide">Từ</Label>
-        <Input
-          type="date"
-          value={from}
-          onChange={(e) => onChange({ from: e.target.value, to })}
-        />
       </div>
-      <div className="space-y-1">
-        <Label className="text-xs uppercase tracking-wide">Đến</Label>
-        <Input
-          type="date"
-          value={to}
-          onChange={(e) => onChange({ from, to: e.target.value })}
-        />
-      </div>
-      <div className="flex gap-1.5">
-        <PresetButton onClick={() => applyPreset('7d')}>7 ngày</PresetButton>
-        <PresetButton onClick={() => applyPreset('30d')}>30 ngày</PresetButton>
-        <PresetButton onClick={() => applyPreset('mtd')}>Tháng này</PresetButton>
-        <PresetButton onClick={() => applyPreset('ytd')}>Năm nay</PresetButton>
-      </div>
-    </div>
-  );
-}
 
-function PresetButton({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Button variant="outline" size="sm" onClick={onClick}>
-      {children}
-    </Button>
-  );
-}
+      <KpiGrid
+        report={report.data}
+        billCount={billsInRange.data?.totalElements}
+        loading={report.isPending}
+      />
 
-function KpiCard({
-  label,
-  value,
-  loading,
-  tone,
-}: {
-  label: string;
-  value: number;
-  loading: boolean;
-  tone: 'neutral' | 'positive' | 'negative';
-}) {
-  const colorClass =
-    tone === 'positive'
-      ? 'text-emerald-600'
-      : tone === 'negative'
-        ? 'text-red-600'
-        : 'text-neutral-900';
-  return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5">
-      <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-        {label}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Panel>
+            <PanelHeader
+              title="Lợi nhuận theo ngày"
+              subtitle={
+                report.data
+                  ? `${report.data.daily.length} ngày có doanh thu`
+                  : ' '
+              }
+            />
+            <PanelBody>
+              <DailyProfitChart report={report.data} loading={report.isPending} />
+            </PanelBody>
+          </Panel>
+        </div>
+        <StockPanel />
       </div>
-      <div
-        className={cn('mt-2 text-2xl font-semibold tabular-nums', colorClass, loading && 'opacity-50')}
-      >
-        {loading ? '—' : formatVnd(value)}
-      </div>
+
+      <RecentActivityPanel />
+
+      <Panel>
+        <PanelHeader title="Lợi nhuận theo sản phẩm" />
+        <PanelBody className="p-0">
+          <ByProductTable report={report.data} loading={report.isPending} />
+        </PanelBody>
+      </Panel>
     </div>
   );
 }
@@ -194,11 +120,11 @@ function DailyProfitChart({
   }, [report]);
 
   if (loading) {
-    return <div className="h-64 animate-pulse rounded-md bg-neutral-100" />;
+    return <div className="h-64 animate-pulse rounded-md bg-bg" />;
   }
   if (!data.length) {
     return (
-      <div className="grid h-64 place-items-center text-sm text-neutral-500">
+      <div className="grid h-64 place-items-center text-[12.5px] text-muted">
         Không có giao dịch nào trong khoảng đã chọn.
       </div>
     );
@@ -207,17 +133,17 @@ function DailyProfitChart({
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#e5e5e5" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#737373' }} tickMargin={6} />
+          <CartesianGrid stroke="#e3e5e7" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6a7178' }} tickMargin={6} />
           <YAxis
-            tick={{ fontSize: 12, fill: '#737373' }}
+            tick={{ fontSize: 11, fill: '#6a7178' }}
             tickFormatter={(v: number) => compactNumber(v)}
-            width={64}
+            width={56}
           />
           <Tooltip
             contentStyle={{
               borderRadius: 8,
-              border: '1px solid #e5e5e5',
+              border: '1px solid #e3e5e7',
               fontSize: 12,
             }}
             formatter={(value) => [formatVnd(Number(value)), 'Lợi nhuận']}
@@ -226,7 +152,7 @@ function DailyProfitChart({
               return row?.date ? formatLongDate(row.date) : String(label);
             }}
           />
-          <Bar dataKey="profit" radius={[4, 4, 0, 0]} fill="#0a0a0a" />
+          <Bar dataKey="profit" radius={[3, 3, 0, 0]} fill="#ff6a1a" />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -254,13 +180,13 @@ function ByProductTable({
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={5} className="py-10 text-center text-neutral-500">
+            <TableCell colSpan={5} className="py-10 text-center text-muted">
               Đang tải…
             </TableCell>
           </TableRow>
         ) : !report || report.byProduct.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="py-10 text-center text-neutral-500">
+            <TableCell colSpan={5} className="py-10 text-center text-muted">
               Không có sản phẩm bán ra trong khoảng đã chọn.
             </TableCell>
           </TableRow>
@@ -268,15 +194,13 @@ function ByProductTable({
           report.byProduct.map((row) => (
             <TableRow key={row.productId}>
               <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatNumber(row.qtySold)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatVnd(row.revenue)}</TableCell>
-              <TableCell className="text-right tabular-nums text-neutral-600">
-                {formatVnd(row.cost)}
-              </TableCell>
+              <TableCell className="mono text-right">{formatNumber(row.qtySold)}</TableCell>
+              <TableCell className="mono text-right">{formatVnd(row.revenue)}</TableCell>
+              <TableCell className="mono text-right text-muted">{formatVnd(row.cost)}</TableCell>
               <TableCell
                 className={cn(
-                  'text-right tabular-nums font-medium',
-                  row.profit >= 0 ? 'text-emerald-700' : 'text-red-700',
+                  'mono text-right font-semibold',
+                  row.profit >= 0 ? 'text-status-ok' : 'text-status-danger',
                 )}
               >
                 {formatVnd(row.profit)}
@@ -289,70 +213,61 @@ function ByProductTable({
   );
 }
 
-// --- helpers (all dates handled in Asia/Ho_Chi_Minh) ---
+// --- helpers ---
 
-function defaultRange(): DateRange {
-  return rangeForPreset('30d');
+function presetLabel(p: Preset): string {
+  switch (p) {
+    case '7d': return '7 ngày';
+    case '30d': return '30 ngày';
+    case 'mtd': return 'Tháng này';
+    case 'ytd': return 'Năm nay';
+  }
 }
+
+interface DateRange { from: string; to: string }
 
 function rangeForPreset(p: Preset): DateRange {
   const today = todayInZone();
   switch (p) {
-    case '7d': {
-      const start = addDays(today, -6); // 7 days inclusive of today
-      return { from: toIso(start), to: toIso(today) };
-    }
-    case '30d': {
-      const start = addDays(today, -29);
-      return { from: toIso(start), to: toIso(today) };
-    }
-    case 'mtd':
-      return { from: toIso({ ...today, d: 1 }), to: toIso(today) };
-    case 'ytd':
-      return { from: toIso({ y: today.y, m: 1, d: 1 }), to: toIso(today) };
+    case '7d': return { from: toIso(addDays(today, -6)), to: toIso(today) };
+    case '30d': return { from: toIso(addDays(today, -29)), to: toIso(today) };
+    case 'mtd': return { from: toIso({ ...today, d: 1 }), to: toIso(today) };
+    case 'ytd': return { from: toIso({ y: today.y, m: 1, d: 1 }), to: toIso(today) };
   }
 }
 
 type Ymd = { y: number; m: number; d: number };
 
 function todayInZone(): Ymd {
-  // Use Intl to get the date parts in Asia/Ho_Chi_Minh regardless of host TZ.
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: REPORT_TZ,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).formatToParts(new Date());
-  const y = Number(parts.find((p) => p.type === 'year')?.value);
-  const m = Number(parts.find((p) => p.type === 'month')?.value);
-  const d = Number(parts.find((p) => p.type === 'day')?.value);
-  return { y, m, d };
+  return {
+    y: Number(parts.find((p) => p.type === 'year')?.value),
+    m: Number(parts.find((p) => p.type === 'month')?.value),
+    d: Number(parts.find((p) => p.type === 'day')?.value),
+  };
 }
 
 function toIso({ y, m, d }: Ymd): string {
-  return `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}-${d
-    .toString()
-    .padStart(2, '0')}`;
+  return `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
 }
 
 function addDays(ymd: Ymd, days: number): Ymd {
   const date = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d));
   date.setUTCDate(date.getUTCDate() + days);
-  return {
-    y: date.getUTCFullYear(),
-    m: date.getUTCMonth() + 1,
-    d: date.getUTCDate(),
-  };
+  return { y: date.getUTCFullYear(), m: date.getUTCMonth() + 1, d: date.getUTCDate() };
 }
 
 function shortDate(iso: string): string {
-  // 2026-06-24 -> 24/6
   const [, m, d] = iso.split('-').map(Number);
   return `${d}/${m}`;
 }
 
 function formatLongDate(iso: string): string {
-  // 2026-06-24 -> 24/06/2026
   const [y, m, d] = iso.split('-').map(Number);
   return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
 }

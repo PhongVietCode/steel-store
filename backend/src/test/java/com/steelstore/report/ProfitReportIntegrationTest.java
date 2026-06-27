@@ -8,11 +8,15 @@ import com.steelstore.product.Product;
 import com.steelstore.product.ProductRepository;
 import com.steelstore.report.dto.ProfitReportResponse;
 import com.steelstore.support.AbstractIntegrationTest;
+import com.steelstore.transaction.BillRepository;
+import com.steelstore.transaction.BillService;
+import com.steelstore.transaction.BillType;
 import com.steelstore.transaction.TransactionRepository;
-import com.steelstore.transaction.TransactionService;
-import com.steelstore.transaction.dto.RecordImportRequest;
-import com.steelstore.transaction.dto.RecordSaleRequest;
+import com.steelstore.transaction.dto.BillLineRequest;
+import com.steelstore.transaction.dto.BillResponse;
+import com.steelstore.transaction.dto.CreateBillRequest;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +32,9 @@ import tools.jackson.databind.ObjectMapper;
 class ProfitReportIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired MockMvc mvc;
-    @Autowired TransactionService txService;
+    @Autowired BillService billService;
     @Autowired ProductRepository productRepository;
+    @Autowired BillRepository billRepository;
     @Autowired TransactionRepository transactionRepository;
     final ObjectMapper json = new ObjectMapper();
 
@@ -39,40 +44,44 @@ class ProfitReportIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void seed() {
         transactionRepository.deleteAll();
+        billRepository.deleteAll();
         productRepository.deleteAll();
         pSteel  = productRepository.save(new Product("Steel",  "kg",  0, 0, 0)).getId();
         pCement = productRepository.save(new Product("Cement", "bag", 0, 0, 0)).getId();
 
-        // Steel: import 100 @ 18000, then sell 30 @ 21000, then reverse 5 of those.
-        txService.recordImport(UUID.randomUUID(),
-                new RecordImportRequest(pSteel, 100, 18000, null));
-        var steelSale = txService.recordSale(UUID.randomUUID(),
-                new RecordSaleRequest(pSteel, 30, 21000, null));
-        // Reverse PART of a sale by recording a brand-new SALE with negative
-        // quantity? No — the API exposes /reverse which negates the WHOLE
-        // original. Reverse all 30, then re-sell 25 to net a "sold 25" picture.
-        txService.reverse(UUID.randomUUID(), steelSale.id(), "customer returned 5");
-        txService.recordSale(UUID.randomUUID(),
-                new RecordSaleRequest(pSteel, 25, 21000, null));
+        // Steel: import 100 @ 18000, then sell 30 @ 21000, reverse the whole sale,
+        // then sell 25 @ 21000 → net "sold 25".
+        billService.createBill(BillType.IMPORT, UUID.randomUUID(),
+                new CreateBillRequest(null, null,
+                        List.of(new BillLineRequest(pSteel, 100, 18000, null))));
+        BillResponse steelSale = billService.createBill(BillType.SALE, UUID.randomUUID(),
+                new CreateBillRequest(null, null,
+                        List.of(new BillLineRequest(pSteel, 30, 21000, null))));
+        billService.reverseBill(UUID.randomUUID(), steelSale.id());
+        billService.createBill(BillType.SALE, UUID.randomUUID(),
+                new CreateBillRequest(null, null,
+                        List.of(new BillLineRequest(pSteel, 25, 21000, null))));
 
         // Cement: import 50 @ 95000, then sell 10 @ 110000.
-        txService.recordImport(UUID.randomUUID(),
-                new RecordImportRequest(pCement, 50, 95000, null));
-        txService.recordSale(UUID.randomUUID(),
-                new RecordSaleRequest(pCement, 10, 110000, null));
+        billService.createBill(BillType.IMPORT, UUID.randomUUID(),
+                new CreateBillRequest(null, null,
+                        List.of(new BillLineRequest(pCement, 50, 95000, null))));
+        billService.createBill(BillType.SALE, UUID.randomUUID(),
+                new CreateBillRequest(null, null,
+                        List.of(new BillLineRequest(pCement, 10, 110000, null))));
     }
 
     @Test
     void profitMatchesHandComputedNumbers() throws Exception {
         // Hand math:
         //   Steel net sold = 30 - 30 + 25 = 25 (sale + reverse + sale)
-        //     revenue = 30*21000 + (-30)*21000 + 25*21000 = 25*21000 = 525_000
-        //     cost    = 30*18000 + (-30)*18000 + 25*18000 = 25*18000 = 450_000
-        //     profit  = 525_000 - 450_000 = 75_000
+        //     revenue = (30 + -30 + 25) * 21000 = 25 * 21000 = 525_000
+        //     cost    = (30 + -30 + 25) * 18000 = 25 * 18000 = 450_000
+        //     profit  = 75_000
         //   Cement: 10 sold
-        //     revenue = 10*110000 = 1_100_000
-        //     cost    = 10* 95000 =   950_000
-        //     profit  =            150_000
+        //     revenue = 10 * 110000 = 1_100_000
+        //     cost    = 10 *  95000 =   950_000
+        //     profit  = 150_000
         //   Totals:
         //     revenue = 1_625_000, cost = 1_400_000, profit = 225_000
 
@@ -105,8 +114,6 @@ class ProfitReportIntegrationTest extends AbstractIntegrationTest {
         assertThat(steelRow.cost()).isEqualTo(450_000L);
         assertThat(steelRow.profit()).isEqualTo(75_000L);
 
-        // All seed rows land on the same Asia/Ho_Chi_Minh day, so daily[]
-        // should have exactly one row equal to the totals.
         assertThat(body.daily()).hasSize(1);
         var todayRow = body.daily().get(0);
         assertThat(todayRow.revenue()).isEqualTo(body.revenue());

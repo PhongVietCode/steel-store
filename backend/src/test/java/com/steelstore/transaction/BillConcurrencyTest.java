@@ -22,27 +22,27 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * Verifies the Stage 4 hard concurrency gate:
- *   product with stock=10, 50 parallel SALEs of qty=1 -> exactly 10 succeed,
- *   the other 40 return 409, final stock=0, exactly 10 SALE rows in DB.
- *
- * Runs against a real embedded Tomcat (RANDOM_PORT) so true OS-level
- * parallelism exercises the optimistic locking + retry path.
+ * The Stage 4 hard concurrency gate, restated for the bill aggregate:
+ *   product with stock=10, 50 parallel single-line SALE bills of qty=1
+ *   -> exactly 10 succeed, the other 40 return 409, final stock=0,
+ *   exactly 10 SALE bills (and 10 transaction lines) in DB.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class TransactionConcurrencyTest extends AbstractIntegrationTest {
+class BillConcurrencyTest extends AbstractIntegrationTest {
 
     private static final int INITIAL_STOCK = 10;
     private static final int PARALLEL_SALES = 50;
 
     @LocalServerPort int port;
     @Autowired ProductRepository productRepository;
+    @Autowired BillRepository billRepository;
     @Autowired TransactionRepository transactionRepository;
     @Autowired JwtIssuer jwtIssuer;
 
     @Test
-    void parallelSales_neverOversell() throws Exception {
+    void parallelSaleBills_neverOversell() throws Exception {
         transactionRepository.deleteAll();
+        billRepository.deleteAll();
         productRepository.deleteAll();
         Product seeded = productRepository.save(
                 new Product("Concurrency tester", "kg", 18000, 21000, INITIAL_STOCK));
@@ -65,11 +65,11 @@ class TransactionConcurrencyTest extends AbstractIntegrationTest {
                 futures[i] = CompletableFuture.runAsync(() -> {
                     UUID key = UUID.randomUUID();
                     String body = """
-                        {"productId":%d, "quantity":1, "unitPrice":21000}
+                        { "lines": [ { "productId": %d, "quantity": 1, "unitPrice": 21000 } ] }
                         """.formatted(productId);
                     try {
                         http.method(HttpMethod.POST)
-                                .uri("/api/transactions/sales")
+                                .uri("/api/bills/sale")
                                 .headers(h -> {
                                     h.set("Idempotency-Key", key.toString());
                                     h.setContentType(MediaType.APPLICATION_JSON);
@@ -94,7 +94,7 @@ class TransactionConcurrencyTest extends AbstractIntegrationTest {
         }
 
         assertThat(ok.get())
-                .as("successful sales").isEqualTo(INITIAL_STOCK);
+                .as("successful sale bills").isEqualTo(INITIAL_STOCK);
         assertThat(conflict.get())
                 .as("409 conflicts").isEqualTo(PARALLEL_SALES - INITIAL_STOCK);
         assertThat(other.get())
@@ -103,9 +103,7 @@ class TransactionConcurrencyTest extends AbstractIntegrationTest {
         Product after = productRepository.findById(productId).orElseThrow();
         assertThat(after.getCurrentStock()).isZero();
 
-        long saleCount = transactionRepository.findAll().stream()
-                .filter(t -> t.getType() == TransactionType.SALE)
-                .count();
-        assertThat(saleCount).as("SALE rows in DB").isEqualTo(INITIAL_STOCK);
+        assertThat(billRepository.count()).as("bills in DB").isEqualTo(INITIAL_STOCK);
+        assertThat(transactionRepository.count()).as("lines in DB").isEqualTo(INITIAL_STOCK);
     }
 }

@@ -5,23 +5,24 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-neutral-900 text-white shadow-sm hover:bg-neutral-800 active:bg-neutral-700',
+          'bg-accent text-white hover:bg-[#e85a0e] active:bg-[#d04f0a]',
         destructive:
-          'bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700',
+          'bg-status-danger text-white hover:bg-[#a72f25] active:bg-[#8e2820]',
         outline:
-          'border border-neutral-300 bg-white text-neutral-900 shadow-xs hover:bg-neutral-100',
-        ghost: 'text-neutral-700 hover:bg-neutral-100',
-        link: 'text-neutral-900 underline-offset-4 hover:underline',
+          'border border-line bg-card text-ink hover:border-ink hover:bg-bg',
+        ghost: 'text-ink hover:bg-bg',
+        subtle: 'bg-bg text-ink hover:bg-line',
+        link: 'text-ink underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-9 px-4',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-10 rounded-md px-6',
+        sm: 'h-8 px-3 text-xs',
+        lg: 'h-10 px-6',
         icon: 'h-9 w-9',
       },
     },

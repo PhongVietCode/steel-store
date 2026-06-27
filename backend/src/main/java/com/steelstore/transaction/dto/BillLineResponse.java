@@ -1,37 +1,28 @@
 package com.steelstore.transaction.dto;
 
 import com.steelstore.transaction.Transaction;
-import com.steelstore.transaction.TransactionType;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
-public record TransactionResponse(
+public record BillLineResponse(
         Long id,
-        TransactionType type,
         Long productId,
         String productName,
+        String productUnit,
         int quantity,
         long unitPrice,
         Long costBasisPerUnit,
         long total,
-        OffsetDateTime occurredAt,
-        UUID idempotencyKey,
-        Long correctionOfId,
         String note
 ) {
-    public static TransactionResponse from(Transaction t) {
-        return new TransactionResponse(
+    public static BillLineResponse from(Transaction t) {
+        return new BillLineResponse(
                 t.getId(),
-                t.getType(),
                 t.getProduct().getId(),
                 t.getProduct().getName(),
+                t.getProduct().getUnit(),
                 t.getQuantity(),
                 t.getUnitPrice(),
                 t.getCostBasisPerUnit(),
                 t.getTotal(),
-                t.getOccurredAt(),
-                t.getIdempotencyKey(),
-                t.getCorrectionOf() == null ? null : t.getCorrectionOf().getId(),
                 t.getNote()
         );
     }

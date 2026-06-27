@@ -5,13 +5,13 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/lib/auth-context';
+import { BillsPage } from '@/pages/Bills';
 import { DashboardPage } from '@/pages/Dashboard';
 import { ImportsPage } from '@/pages/Imports';
 import { LoginPage } from '@/pages/Login';
 import { NotFoundPage } from '@/pages/NotFound';
 import { ProductsPage } from '@/pages/Products';
 import { SalesPage } from '@/pages/Sales';
-import { TransactionsPage } from '@/pages/Transactions';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +40,7 @@ export default function App() {
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/imports" element={<ImportsPage />} />
                 <Route path="/sales" element={<SalesPage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/bills" element={<BillsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

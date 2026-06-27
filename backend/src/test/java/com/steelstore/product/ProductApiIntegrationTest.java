@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.steelstore.support.AbstractIntegrationTest;
+import com.steelstore.transaction.BillRepository;
+import com.steelstore.transaction.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +27,16 @@ class ProductApiIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired MockMvc mvc;
     @Autowired ProductRepository repository;
+    @Autowired BillRepository billRepository;
+    @Autowired TransactionRepository transactionRepository;
     final ObjectMapper json = new ObjectMapper();
 
     @BeforeEach
     void cleanProducts() {
+        // Other test classes share the same Spring context (and therefore the
+        // same DB); clear dependent rows first so the product DELETE can run.
+        transactionRepository.deleteAll();
+        billRepository.deleteAll();
         repository.deleteAll();
     }
 

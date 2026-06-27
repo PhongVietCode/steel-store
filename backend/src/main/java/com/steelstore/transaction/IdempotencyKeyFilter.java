@@ -14,8 +14,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Validates the Idempotency-Key header for POST /api/transactions/*
- * write endpoints. Stashes the parsed UUID on the request as attribute
+ * Validates the Idempotency-Key header for POST /api/bills/* write
+ * endpoints. Stashes the parsed UUID on the request as attribute
  * {@link #ATTRIBUTE} for the controller/service to pick up.
  */
 @Component
@@ -34,7 +34,7 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         if (!"POST".equalsIgnoreCase(request.getMethod())) return true;
         String path = request.getRequestURI();
-        return !path.startsWith("/api/transactions");
+        return !path.startsWith("/api/bills");
     }
 
     @Override

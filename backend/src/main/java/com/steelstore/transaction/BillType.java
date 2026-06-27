@@ -1,6 +1,6 @@
 package com.steelstore.transaction;
 
-public enum TransactionType {
+public enum BillType {
     IMPORT,
     SALE
 }

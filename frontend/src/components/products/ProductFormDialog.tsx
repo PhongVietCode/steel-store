@@ -189,7 +189,7 @@ function Field({
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
-      {error ? <div className="text-xs text-red-600">{error}</div> : null}
+      {error ? <div className="text-[11px] font-medium text-status-danger">{error}</div> : null}
     </div>
   );
 }

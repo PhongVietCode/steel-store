@@ -3,23 +3,23 @@ package com.steelstore.transaction;
 import com.steelstore.product.Product;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.generator.EventType;
-import org.hibernate.type.SqlTypes;
 
+/**
+ * One line within a {@link Bill}. Type, occurred_at, idempotency, and
+ * correction-linkage all live on the parent Bill; the line itself just
+ * records what was moved (product, quantity, unit price, and SALE-only
+ * cost basis snapshot).
+ */
 @Entity
 @Table(name = "transactions")
 public class Transaction {
@@ -28,10 +28,9 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type", nullable = false, columnDefinition = "transactiontype")
-    private TransactionType type;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "bill_id", nullable = false)
+    private Bill bill;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
@@ -50,50 +49,34 @@ public class Transaction {
     @Column(name = "total", insertable = false, updatable = false)
     private long total;
 
-    @Column(name = "occurred_at", nullable = false)
-    private OffsetDateTime occurredAt;
-
-    @Column(name = "idempotency_key", nullable = false, unique = true)
-    private UUID idempotencyKey;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "correction_of_id")
-    private Transaction correctionOf;
-
     @Column(name = "note")
     private String note;
 
+    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
+    private OffsetDateTime createdAt;
+
     protected Transaction() {}
 
-    public Transaction(TransactionType type, Product product, int quantity, long unitPrice,
-                       Long costBasisPerUnit, UUID idempotencyKey,
-                       Transaction correctionOf, String note) {
-        this.type = type;
+    public Transaction(Product product, int quantity, long unitPrice,
+                       Long costBasisPerUnit, String note) {
         this.product = product;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.costBasisPerUnit = costBasisPerUnit;
-        this.idempotencyKey = idempotencyKey;
-        this.correctionOf = correctionOf;
         this.note = note;
     }
 
-    @PrePersist
-    void onCreate() {
-        if (occurredAt == null) {
-            occurredAt = OffsetDateTime.now();
-        }
+    void setBill(Bill bill) {
+        this.bill = bill;
     }
 
     public Long getId() { return id; }
-    public TransactionType getType() { return type; }
+    public Bill getBill() { return bill; }
     public Product getProduct() { return product; }
     public int getQuantity() { return quantity; }
     public long getUnitPrice() { return unitPrice; }
     public Long getCostBasisPerUnit() { return costBasisPerUnit; }
     public long getTotal() { return total; }
-    public OffsetDateTime getOccurredAt() { return occurredAt; }
-    public UUID getIdempotencyKey() { return idempotencyKey; }
-    public Transaction getCorrectionOf() { return correctionOf; }
     public String getNote() { return note; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
 }

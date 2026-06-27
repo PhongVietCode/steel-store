@@ -36,5 +36,10 @@ public abstract class AbstractIntegrationTest {
         r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         r.add("spring.datasource.username", POSTGRES::getUsername);
         r.add("spring.datasource.password", POSTGRES::getPassword);
+        // Production runs with maximum-pool-size: 60. Tests cache multiple
+        // Spring contexts (a MockMvc one + a RANDOM_PORT one for the
+        // concurrency test); two 60-connection pools open in parallel
+        // exceed Postgres's default max_connections=100. Cap at 20 here.
+        r.add("spring.datasource.hikari.maximum-pool-size", () -> "20");
     }
 }
