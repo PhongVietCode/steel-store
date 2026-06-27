@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type { ReactNode } from 'react';
 import { api } from './api';
 import { clearToken, loadToken, saveToken } from './auth-storage';
+import { hashPassword } from './crypto';
 
 interface AuthContextValue {
   token: string | null;
@@ -23,9 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const username = useMemo(() => (token ? subjectFromJwt(token) : null), [token]);
 
   const login = useCallback(async (u: string, p: string) => {
+    const hashed = await hashPassword(u, p);
     const res = await api<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: { username: u, password: p },
+      body: { username: u, password: hashed },
     });
     saveToken(res.token, res.expiresAt);
     setToken(res.token);
